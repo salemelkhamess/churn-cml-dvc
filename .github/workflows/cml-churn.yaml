@@ -14,27 +14,40 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run training script
+        run: |
+          echo "Running training..."
+          python script.py
+          echo "Files generated:"
+          ls -lh
 
       - name: Setup CML
         uses: iterative/setup-cml@v1
 
-      # Ajoute ici tes étapes ML (train, test, metrics, etc.)
-
-      - name: Generate Report
+      - name: Generate CML Report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Metrics" > report.md
-          awk 'NR % 4 { print "\n" $0 } { print "" }' metrics.txt >> report.md
-          echo "## Confusion Matrix" >> report.md
+          if [ ! -f metrics.txt ]; then
+            echo "❌ metrics.txt not found"
+            exit 1
+          fi
+
+          echo "## 📊 Metrics" > report.md
+          cat metrics.txt >> report.md
+
+          echo "" >> report.md
+          echo "## 🔍 Confusion Matrix" >> report.md
           echo "![](./conf_matrix.png)" >> report.md
+
           cml comment create report.md
